@@ -1,12 +1,21 @@
 import { useState } from "react";
-import { Alert, Button, StyleSheet, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Button,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 
 import { auth } from "../firebaseConfig";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
-const Cadastro = () => {
+const Cadastro = ({ navigation }) => {
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const cadastrar = () => {
     if (!email || !senha) {
@@ -14,13 +23,23 @@ const Cadastro = () => {
       return;
     }
 
+    setLoading(true);
     createUserWithEmailAndPassword(auth, email, senha)
       .then(() => {
+        /* Ao fazer a criação do novo usuário (com email e senha), aproveitamos para atualizar
+        via updateProfile a propriedade do auth que permite adicionar um nome ao usuário */
+        updateProfile(auth.currentUser, {
+          displayName: nome,
+        });
+
         Alert.alert("Cadastro", "Conta criada com sucesso!", [
           {
             text: "Não, me deixe aqui mesmo",
             onPress: () => {
-              return false;
+              // setEmail("");
+              // setSenha("");
+              // return false;
+              navigation.replace("Cadastro");
             },
             style: "cancel",
           },
@@ -54,12 +73,18 @@ const Cadastro = () => {
             break;
         }
         Alert.alert("Atenção!", mensagem);
-      });
+      })
+      .finally(() => setLoading(false));
   };
 
   return (
     <View style={estilos.container}>
       <View style={estilos.formulario}>
+        <TextInput
+          placeholder="Nome"
+          style={estilos.input}
+          onChangeText={(valor) => setNome(valor)}
+        />
         <TextInput
           placeholder="E-mail"
           style={estilos.input}
@@ -73,7 +98,13 @@ const Cadastro = () => {
           onChangeText={(valor) => setSenha(valor)}
         />
         <View style={estilos.botoes}>
-          <Button onPress={cadastrar} title="Cadastre-se" color="blue" />
+          <Button
+            disabled={loading}
+            onPress={cadastrar}
+            title="Cadastre-se"
+            color="blue"
+          />
+          {loading && <ActivityIndicator size="large" color="blue" />}
         </View>
       </View>
     </View>
